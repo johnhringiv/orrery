@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!--
+    Orrery — an orbital watch face.
+
+    Three satellites ride circular orbits around a matte black dial, phased
+    off the minute angle, staying upright while the constellation sweeps one
+    revolution per hour: an hour disc (counter-rotating so the current hour
+    sits under its tick, IV burgee at the 12 position), a day-of-week gauge
+    (weekend arc highlighted), and a battery gauge (red = empty, blue = full,
+    needle over a five-segment scale). A long tapered blade reads minutes
+    against the flange tick ring. The date ring rotates today's numeral to
+    12 o'clock, highlighted white beneath a fixed pointer.
+
+    Orbits (radius @ phase from the minute angle): hour 82.5 @ 180°,
+    day 128 @ -60°, battery 128 @ +60°. Angles are clockwise from 12; part
+    coordinates are integers (validator requirement).
+-->
+<WatchFace width="450" height="450">
+  <Metadata key="CLOCK_TYPE" value="ANALOG"/>
+  <Metadata key="PREVIEW_TIME" value="10:08:30"/>
+  <Scene backgroundColor="#ff000000">
+
+    <!-- dial body: uniform matte black-black -->
+    <PartDraw x="25" y="25" width="400" height="400" name="dial_body">
+      <Ellipse x="0" y="0" width="400" height="400">
+        <Fill color="#FF0D0D0C"/>
+      </Ellipse>
+    </PartDraw>
+
+    <!-- hour satellite: orbits opposite the minute hand, stays upright -->
+    <Group x="113" y="195" width="225" height="225" name="hour_satellite">
+      <Transform target="x" value="112.5 - (82.5 * sin((([MINUTE] + [SECOND_MILLISECOND] / 60) * 6) * 0.017453293))"/>
+      <Transform target="y" value="112.5 + (82.5 * cos((([MINUTE] + [SECOND_MILLISECOND] / 60) * 6) * 0.017453293))"/>
+      <PartImage x="0" y="0" width="225" height="225">
+        <Image resource="hour_dial"/>
+      </PartImage>
+      <PartImage x="98" y="25" width="30" height="175" angle="0" name="hour_hand">
+        <Transform target="angle" value="[HOUR_0_11_MINUTE] * 30"/>
+        <Image resource="hand_hour"/>
+      </PartImage>
+    </Group>
+
+    <!-- day satellite: orbits 60° behind the hand; 7 segments, weekend orange -->
+    <Group x="159" y="29" width="132" height="132" name="day_satellite">
+      <Transform target="x" value="159 + (128 * sin(((([MINUTE] + [SECOND_MILLISECOND] / 60) * 6) - 60) * 0.017453293))"/>
+      <Transform target="y" value="159 - (128 * cos(((([MINUTE] + [SECOND_MILLISECOND] / 60) * 6) - 60) * 0.017453293))"/>
+      <PartImage x="0" y="0" width="132" height="132">
+        <Variant mode="AMBIENT" target="alpha" value="180"/>
+        <Image resource="day_dial"/>
+      </PartImage>
+      <PartImage x="58" y="18" width="16" height="96" angle="0" name="day_hand">
+        <Variant mode="AMBIENT" target="alpha" value="180"/>
+        <Transform target="angle" value="51.428571 * ([DAY_OF_WEEK] - 0.5)"/>
+        <Image resource="hand_gauge"/>
+      </PartImage>
+    </Group>
+
+    <!-- battery satellite: orbits 60° ahead; red/orange low-charge arcs -->
+    <Group x="159" y="29" width="132" height="132" name="battery_satellite">
+      <Transform target="x" value="159 + (128 * sin(((([MINUTE] + [SECOND_MILLISECOND] / 60) * 6) + 60) * 0.017453293))"/>
+      <Transform target="y" value="159 - (128 * cos(((([MINUTE] + [SECOND_MILLISECOND] / 60) * 6) + 60) * 0.017453293))"/>
+      <PartImage x="0" y="0" width="132" height="132">
+        <Variant mode="AMBIENT" target="alpha" value="180"/>
+        <Image resource="batt_dial"/>
+      </PartImage>
+      <PartImage x="58" y="18" width="16" height="96" angle="0" name="battery_hand">
+        <Variant mode="AMBIENT" target="alpha" value="140"/>
+        <Transform target="angle" value="(50 - [BATTERY_PERCENT]) * 3.5"/>
+        <Image resource="hand_gauge"/>
+      </PartImage>
+    </Group>
+
+    <!-- minute hand: floating segment r45..r195, over the satellites -->
+    <PartImage x="213" y="30" width="24" height="390" angle="0" name="minute_hand">
+      <Transform target="angle" value="([MINUTE] + [SECOND_MILLISECOND] / 60) * 6"/>
+      <Image resource="hand_minute"/>
+    </PartImage>
+
+    <!-- flange furniture on top: tick ring, rotating date ring, fixed pointer -->
+    <PartImage x="0" y="0" width="450" height="450" name="tick_ring">
+      <Variant mode="AMBIENT" target="alpha" value="140"/>
+      <Image resource="tick_ring"/>
+    </PartImage>
+    <PartImage x="0" y="0" width="450" height="450" angle="0" name="date_ring">
+      <Variant mode="AMBIENT" target="alpha" value="120"/>
+      <Transform target="angle" value="360 - ([DAY] * 11.612903)"/>
+      <Image resource="date_ring"/>
+    </PartImage>
+    <PartText x="200" y="2" width="50" height="22" name="date_active">
+      <Variant mode="AMBIENT" target="alpha" value="170"/>
+      <Text align="CENTER">
+        <Font family="SYNC_TO_DEVICE" size="13" weight="MEDIUM" color="#FFFFFFFF">
+          <Template><![CDATA[%s]]>
+            <Parameter expression="[DAY]"/>
+          </Template>
+        </Font>
+      </Text>
+    </PartText>
+    <PartImage x="217" y="27" width="16" height="16" name="date_pointer">
+      <Image resource="date_pointer"/>
+    </PartImage>
+
+  </Scene>
+</WatchFace>
