@@ -1,0 +1,14 @@
+# Unix line endings everywhere, on every platform
+* text=auto eol=lf
+
+# Windows batch files need CRLF for cmd.exe
+*.bat text eol=crlf
+
+# Binaries
+*.png binary
+*.gif binary
+*.mp4 binary
+*.jar binary
+*.apk binary
+*.aab binary
+*.jks binary

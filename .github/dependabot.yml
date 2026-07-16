@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Keep workflow actions on current majors (Node deprecations etc.)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+  # Only dependency is AGP, but keep it current
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: monthly

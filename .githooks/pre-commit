@@ -1,0 +1,27 @@
+#!/bin/sh
+# Auto-format staged Markdown files with Prettier and re-stage them.
+# Enable with: git config core.hooksPath .githooks
+# (Pattern borrowed from johnhringiv/notes-mcp.)
+
+files=$(git diff --cached --name-only --diff-filter=ACMR -- '*.md')
+[ -z "$files" ] && exit 0
+
+# Find a formatter: prettier on PATH, npx on PATH, or the portable node install.
+if command -v prettier >/dev/null 2>&1; then
+    FMT="prettier"
+elif command -v npx >/dev/null 2>&1; then
+    FMT="npx --yes prettier"
+elif [ -x "$HOME/.local/node/npx.cmd" ]; then
+    # portable node: npx needs its sibling node.exe on PATH
+    PATH="$HOME/.local/node:$PATH"
+    export PATH
+    FMT="npx --yes prettier"
+else
+    echo "pre-commit: prettier/npx not found — skipping Markdown format (CI will check)" >&2
+    exit 0
+fi
+
+echo "$files" | while IFS= read -r f; do
+    $FMT --write "$f" || exit 1
+    git add "$f"
+done
