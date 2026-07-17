@@ -89,7 +89,7 @@
     <PartText x="200" y="2" width="50" height="22" name="date_active">
       <Variant mode="AMBIENT" target="alpha" value="170"/>
       <Text align="CENTER">
-        <Font family="SYNC_TO_DEVICE" size="13" weight="MEDIUM" color="#FFFFFFFF">
+        <Font family="quicksand_light" size="14" weight="MEDIUM" color="#FFFFFFFF">
           <Template><![CDATA[%s]]>
             <Parameter expression="[DAY]"/>
           </Template>
