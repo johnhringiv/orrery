@@ -23,7 +23,7 @@
     <!-- dial body: uniform matte black-black -->
     <PartDraw x="25" y="25" width="400" height="400" name="dial_body">
       <Ellipse x="0" y="0" width="400" height="400">
-        <Fill color="#FF0D0D0C"/>
+        <Fill color="#FF000000"/>
       </Ellipse>
     </PartDraw>
 
@@ -89,7 +89,8 @@
     <PartText x="200" y="2" width="50" height="22" name="date_active">
       <Variant mode="AMBIENT" target="alpha" value="170"/>
       <Text align="CENTER">
-        <Font family="SYNC_TO_DEVICE" size="13" weight="MEDIUM" color="#FFFFFFFF">
+        <!-- Embedded digits-only subset; file is already semibold, so weight stays NORMAL. -->
+        <Font family="shantell" size="13" weight="NORMAL" color="#FFFFFFFF">
           <Template><![CDATA[%s]]>
             <Parameter expression="[DAY]"/>
           </Template>
