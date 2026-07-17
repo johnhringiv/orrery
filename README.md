@@ -45,6 +45,8 @@ Requires JDK 21 and the Android SDK (compileSdk 36). Release signing reads `keys
 
 There is no live preview for WFF: iterate by building and installing on a watch or emulator. CI runs the [WFF format validator and memory footprint check](https://github.com/google/watchface) on every build.
 
+Design references live in `docs/`: [font-specimen.html](docs/font-specimen.html) compares rounded-sans candidates for the dial numerals against the current Arial, at true asset scale (fonts embedded — open it locally in any browser).
+
 After cloning, enable the repo hooks (auto-formats Markdown with Prettier on commit; CI enforces):
 
 ```
