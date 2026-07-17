@@ -18,6 +18,12 @@ jobs:
           set -euo pipefail
           git fetch origin "${{ github.base_ref }}" --depth=1
 
+          # Docs/CI-only PRs ship nothing in the APK — no version bump required.
+          if git diff --quiet "origin/${{ github.base_ref }}" HEAD -- watchface/; then
+            echo "No changes under watchface/ — version bump not required."
+            exit 0
+          fi
+
           pr_vc=$(grep -oP 'versionCode = \K\d+' watchface/build.gradle.kts)
           pr_vn=$(grep -oP 'versionName = "\K[^"]+' watchface/build.gradle.kts)
           echo "PR:   versionCode=$pr_vc versionName=$pr_vn"
@@ -134,7 +140,12 @@ jobs:
           vc=$(grep -oP 'versionCode = \K\d+' watchface/build.gradle.kts)
           mv watchface-release*.apk "Orrery-v${vn}.apk"
           # The squash commit body IS the changelog (repo squashes with PR_BODY).
-          git log -1 --format=%b > notes.md
+          # Prefer the associated PR's body: correct even when a later push re-runs
+          # the release (regatta-timer#8: a hotfix push once produced wrong notes).
+          gh api "repos/${{ github.repository }}/commits/${GITHUB_SHA}/pulls" --jq '.[0].body // empty' > notes.md 2>/dev/null || true
+          if [ ! -s notes.md ]; then
+            git log -1 --format=%b > notes.md
+          fi
           printf '\n---\nversionCode %s · sideload instructions in the README\n' "${vc}" >> notes.md
           gh release create "v${vn}" "Orrery-v${vn}.apk" \
             --title "Orrery v${vn}" \
