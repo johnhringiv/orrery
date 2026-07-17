@@ -10,3 +10,7 @@ keystore.properties
 *.apk
 
 reference/
+
+# Python
+__pycache__/
+*.pyc

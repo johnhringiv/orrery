@@ -23,7 +23,7 @@
     <!-- dial body: uniform matte black-black -->
     <PartDraw x="25" y="25" width="400" height="400" name="dial_body">
       <Ellipse x="0" y="0" width="400" height="400">
-        <Fill color="#FF0D0D0C"/>
+        <Fill color="#FF000000"/>
       </Ellipse>
     </PartDraw>
 
@@ -48,11 +48,66 @@
         <Variant mode="AMBIENT" target="alpha" value="180"/>
         <Image resource="day_dial"/>
       </PartImage>
-      <PartImage x="58" y="18" width="16" height="96" angle="0" name="day_hand">
+      <!-- shorter blade: tip r=28 stays inside the letter ring (letters at r~34-46) -->
+      <PartImage x="58" y="38" width="16" height="56" angle="0" name="day_hand">
         <Variant mode="AMBIENT" target="alpha" value="180"/>
         <Transform target="angle" value="51.428571 * ([DAY_OF_WEEK] - 0.5)"/>
-        <Image resource="hand_gauge"/>
+        <Image resource="day_hand"/>
       </PartImage>
+      <!-- today's initial in white, over the baked gray/orange letter (same font+size) -->
+      <Condition>
+        <Expressions>
+          <Expression name="dow1"><![CDATA[[DAY_OF_WEEK] == 1]]></Expression>
+          <Expression name="dow2"><![CDATA[[DAY_OF_WEEK] == 2]]></Expression>
+          <Expression name="dow3"><![CDATA[[DAY_OF_WEEK] == 3]]></Expression>
+          <Expression name="dow4"><![CDATA[[DAY_OF_WEEK] == 4]]></Expression>
+          <Expression name="dow5"><![CDATA[[DAY_OF_WEEK] == 5]]></Expression>
+          <Expression name="dow6"><![CDATA[[DAY_OF_WEEK] == 6]]></Expression>
+          <Expression name="dow7"><![CDATA[[DAY_OF_WEEK] == 7]]></Expression>
+        </Expressions>
+        <Compare expression="dow1">
+          <PartText x="73" y="20" width="20" height="20" name="day_now_sun">
+            <Variant mode="AMBIENT" target="alpha" value="180"/>
+            <Text align="CENTER"><Font family="shantell" size="14" weight="NORMAL" color="#FFFFFFFF">S</Font></Text>
+          </PartText>
+        </Compare>
+        <Compare expression="dow2">
+          <PartText x="95" y="47" width="20" height="20" name="day_now_mon">
+            <Variant mode="AMBIENT" target="alpha" value="180"/>
+            <Text align="CENTER"><Font family="shantell" size="14" weight="NORMAL" color="#FFFFFFFF">M</Font></Text>
+          </PartText>
+        </Compare>
+        <Compare expression="dow3">
+          <PartText x="87" y="81" width="20" height="20" name="day_now_tue">
+            <Variant mode="AMBIENT" target="alpha" value="180"/>
+            <Text align="CENTER"><Font family="shantell" size="14" weight="NORMAL" color="#FFFFFFFF">T</Font></Text>
+          </PartText>
+        </Compare>
+        <Compare expression="dow4">
+          <PartText x="56" y="96" width="20" height="20" name="day_now_wed">
+            <Variant mode="AMBIENT" target="alpha" value="180"/>
+            <Text align="CENTER"><Font family="shantell" size="14" weight="NORMAL" color="#FFFFFFFF">W</Font></Text>
+          </PartText>
+        </Compare>
+        <Compare expression="dow5">
+          <PartText x="25" y="81" width="20" height="20" name="day_now_thu">
+            <Variant mode="AMBIENT" target="alpha" value="180"/>
+            <Text align="CENTER"><Font family="shantell" size="14" weight="NORMAL" color="#FFFFFFFF">T</Font></Text>
+          </PartText>
+        </Compare>
+        <Compare expression="dow6">
+          <PartText x="17" y="47" width="20" height="20" name="day_now_fri">
+            <Variant mode="AMBIENT" target="alpha" value="180"/>
+            <Text align="CENTER"><Font family="shantell" size="14" weight="NORMAL" color="#FFFFFFFF">F</Font></Text>
+          </PartText>
+        </Compare>
+        <Compare expression="dow7">
+          <PartText x="39" y="20" width="20" height="20" name="day_now_sat">
+            <Variant mode="AMBIENT" target="alpha" value="180"/>
+            <Text align="CENTER"><Font family="shantell" size="14" weight="NORMAL" color="#FFFFFFFF">S</Font></Text>
+          </PartText>
+        </Compare>
+      </Condition>
     </Group>
 
     <!-- battery satellite: orbits 60° ahead; red/orange low-charge arcs -->
@@ -86,19 +141,29 @@
       <Transform target="angle" value="360 - ([DAY] * 11.612903)"/>
       <Image resource="date_ring"/>
     </PartImage>
-    <PartText x="200" y="2" width="50" height="22" name="date_active">
+    <!-- date magnifier: black porthole over the ring, today's number enlarged inside -->
+    <PartDraw x="205" y="0" width="40" height="40" name="date_lens">
+      <Variant mode="AMBIENT" target="alpha" value="150"/>
+      <Ellipse x="1" y="1" width="38" height="38">
+        <Fill color="#FF000000"/>
+      </Ellipse>
+    </PartDraw>
+    <PartImage x="199" y="0" width="52" height="42" name="date_oval">
+      <Variant mode="AMBIENT" target="alpha" value="150"/>
+      <Image resource="date_oval"/>
+    </PartImage>
+    <PartText x="198" y="4" width="54" height="32" name="date_active">
       <Variant mode="AMBIENT" target="alpha" value="170"/>
       <Text align="CENTER">
-        <Font family="SYNC_TO_DEVICE" size="13" weight="MEDIUM" color="#FFFFFFFF">
+        <!-- Embedded digits-only subset; file is already semibold, so weight stays NORMAL. -->
+        <Font family="shantell" size="30" weight="NORMAL" color="#FFFFFFFF">
           <Template><![CDATA[%s]]>
             <Parameter expression="[DAY]"/>
           </Template>
         </Font>
       </Text>
     </PartText>
-    <PartImage x="217" y="27" width="16" height="16" name="date_pointer">
-      <Image resource="date_pointer"/>
-    </PartImage>
+
 
   </Scene>
 </WatchFace>

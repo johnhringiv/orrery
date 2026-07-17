@@ -17,13 +17,13 @@ android {
 
     defaultConfig {
         applicationId = "com.johnhringiv.orrery"
-        // minSdk 34 = Wear OS 5, the floor for Watch Face Format v2 (HEART_RATE default).
+        // minSdk 35 = Wear OS 5.1, the floor for Watch Face Format v3 (blend modes, part transforms).
         minSdk = 35
         targetSdk = 36
         // versionCode bumps on every feature-branch change (CI-enforced > main).
         // versionName bumps once per PR to main (CI-enforced).
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 6
+        versionName = "0.2"
     }
 
     signingConfigs {
