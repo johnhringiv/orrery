@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <uses-feature android:name="android.hardware.type.watch" />
+
+  <!-- hasCode must be false for Watch Face Format: the package is resource-only. -->
+  <application
+      android:label="@string/watch_face_name"
+      android:hasCode="false">
+
+    <meta-data
+        android:name="com.google.android.wearable.standalone"
+        android:value="true" />
+    <!-- Lowest WFF version that covers this face: v3 for part blend modes
+         (white rim icons via SRC_ATOP); HEART_RATE default needs v2. -->
+    <property
+        android:name="com.google.wear.watchface.format.version"
+        android:value="3" />
+  </application>
+</manifest>
