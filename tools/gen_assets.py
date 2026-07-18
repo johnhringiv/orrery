@@ -5,11 +5,11 @@ Run from anywhere:  py tools/gen_assets.py [--check]
   (default)  writes assets into watchface/src/main/res/drawable/ and res/font/
   --check    regenerates in memory and reports any pixel/byte drift vs the repo
 
-Fully generated here: hour_dial (disc + numerals + burgee), date_ring,
-day_hand, date_oval, res/font/shantell.ttf. Patched in place here: day_dial
-(letter layer), batt_dial (bolt brightness). Everything else in drawable/
-(day/batt gauge bases, tick_ring, hands, preview) is baked art from the
-prototyping phase — its history lives in git.
+Fully generated here (byte-reproducible; --check verifies exact bytes):
+hour_dial (disc + numerals + burgee), date_ring, day_dial, batt_dial,
+day_hand, date_oval, res/font/shantell.ttf. Everything else in drawable/
+(tick_ring, hands, preview) is committed baked art from prototyping; its
+history lives in git.
 
 Typography note: all text renders from tools/fonts/ShantellSans.ttf at the
 font's default variable instance. That default rendering is the approved look;
@@ -37,6 +37,11 @@ DATE_GRAY = (131, 129, 124, 255)    # date ring digits
 DAY_GRAY = (146, 144, 138, 255)     # weekday initials
 DAY_ORANGE = (255, 150, 19, 255)    # weekend initials
 OVAL_ORANGE = (243, 146, 30, 255)   # hand-drawn oval around today's date
+BATT_GRAY = (146, 144, 139, 255)    # battery gauge arc segments
+BATT_RED = (204, 52, 36, 255)       # battery empty end
+BATT_BLUE = (64, 110, 194, 255)     # battery full end
+DAY_ARC_ORANGE = (249, 144, 20, 255)  # weekend day-gauge arcs
+DAY_ARC_GRAY = (151, 149, 142, 255)   # weekday day-gauge arcs
 
 HOUR_SIZE = 110   # cap height 80px at 4x == the original Arial 26 numerals
 DATE_SIZE = 40    # cap height 28px at 4x == the original 11px ring digits
@@ -63,6 +68,15 @@ def glyph_tile(text, size, fill, rot_deg, out_px=None):
 def polar(c, r, ang):
     a = math.radians(ang)
     return c + r * math.sin(a), c - r * math.cos(a)
+
+
+def arc_round(d, c, r, w, a0, a1, fill):
+    """Arc from a0 to a1 (deg from top, clockwise) at radius r, thickness w,
+    with round caps — drawn as overlapping dots so the ends are rounded."""
+    n = max(2, int((a1 - a0) * 2))
+    for i in range(n + 1):
+        x, y = polar(c, r, a0 + (a1 - a0) * i / n)
+        d.ellipse([x - w / 2, y - w / 2, x + w / 2, y + w / 2], fill=fill)
 
 
 def gen_date_ring():
@@ -178,35 +192,41 @@ def gen_hour_dial():
     return im
 
 
-def patch_batt_dial(im):
-    """Brightens the charge bolt to full white (baked at ~73 percent ecru).
-    Touches only near-monochrome pixels inside the bolt's cell at the bottom."""
-    im = im.convert("RGBA")
-    px = im.load()
-    for y in range(111, 127):
-        for x in range(61, 72):
-            r, g, b, a = px[x, y]
-            if a > 20 and max(r, g, b) > 25 and abs(r - g) < 25 and abs(g - b) < 25:
-                px[x, y] = (min(255, round(r * 255 / 185)),
-                            min(255, round(g * 255 / 185)),
-                            min(255, round(b * 255 / 185)), a)
-    return im
-
-
-def patch_day_dial(im):
-    """Rewrites the 7 upright initials (r=40) on the baked gauge; weekend S's
-    orange. Erase circles stay at r=6.5 to clear the arcs at r>=49."""
-    im = im.convert("RGBA")
+def gen_batt_dial():
+    """BB2-style battery gauge (132): five arc segments every 72deg — gray, gray,
+    red, blue, gray — with a white charge bolt in the bottom gap. Opaque black
+    disc so satellites occlude seamlessly."""
+    S = 132
+    im = Image.new("RGBA", (S * F, S * F), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    c = im.size[0] / 2
-    days = ["S", "M", "T", "W", "T", "F", "S"]
-    for i, day in enumerate(days):
-        a = (i + 0.5) * 360 / 7
-        x, y = polar(c, 40, a)
-        d.ellipse([x - 6.5, y - 6.5, x + 6.5, y + 6.5], fill=BLACK)
-        fill = DAY_ORANGE if i in (0, 6) else DAY_GRAY
-        im.alpha_composite(glyph_tile(day, DAY_SIZE, fill, 0, out_px=64), (round(x - 32), round(y - 32)))
-    return im
+    d.ellipse([0, 0, S * F - 1, S * F - 1], fill=BLACK)
+    c = S * F / 2
+    for k, col in enumerate([BATT_GRAY, BATT_GRAY, BATT_RED, BATT_BLUE, BATT_GRAY]):
+        ctr = k * 72
+        arc_round(d, c, 51 * F, 4 * F, ctr - 29, ctr + 29, col)
+    bx, by = polar(c, 51 * F, 180)          # charge bolt in the bottom gap
+    bolt = [(-2.5, -6), (1.5, -6), (-0.5, -0.5), (3, -0.5), (-2, 7), (-0.5, 0.5), (-3.5, 0.5)]
+    d.polygon([(bx + px * F, by + py * F) for px, py in bolt], fill=WHITE)
+    return im.resize((S, S), Image.LANCZOS)
+
+
+def gen_day_dial():
+    """Day-of-week gauge (132): seven arc segments (weekend S's orange, weekdays
+    gray) with upright Shantell initials at r=40, on an opaque black disc."""
+    S = 132
+    im = Image.new("RGBA", (S * F, S * F), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    d.ellipse([0, 0, S * F - 1, S * F - 1], fill=BLACK)
+    c = S * F / 2
+    for i, day in enumerate(["S", "M", "T", "W", "T", "F", "S"]):
+        ctr = (i + 0.5) * 360 / 7
+        weekend = i in (0, 6)
+        arc_round(d, c, 51 * F, 2 * F, ctr - 20, ctr + 20,
+                  DAY_ARC_ORANGE if weekend else DAY_ARC_GRAY)
+        x, y = polar(c, 40 * F, ctr)
+        tile = glyph_tile(day, DAY_SIZE, DAY_ORANGE if weekend else DAY_GRAY, 0)
+        im.alpha_composite(tile, (round(x - 32 * F), round(y - 32 * F)))
+    return im.resize((S, S), Image.LANCZOS)
 
 
 def gen_font_subset():
@@ -215,24 +235,42 @@ def gen_font_subset():
     import os
     os.environ.setdefault("SOURCE_DATE_EPOCH", "0")  # deterministic head.modified
     from fontTools import subset
+    from fontTools.varLib.instancer import instantiateVariableFont
     opts = subset.Options()
     sub = subset.Subsetter(opts)
     font = subset.load_font(str(SHANTELL), opts)
     sub.populate(text="0123456789SMTWF")
     sub.subset(font)
+    # We only ever render the default instance, so pin the variation axes and drop
+    # the variable-font machinery (fvar/gvar/…): ~34 KB smaller, no visual change.
+    if "fvar" in font:
+        instantiateVariableFont(
+            font, {a.axisTag: a.defaultValue for a in font["fvar"].axes}, inplace=True
+        )
     buf = io.BytesIO()
     font.save(buf)
     return buf.getvalue()
 
 
+def png_bytes(img):
+    """Canonical PNG encoding, used for both writing and byte-exact --check.
+    PIL's default PNG save is deterministic run-to-run, so re-running the
+    generator reproduces committed bytes exactly."""
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    return buf.getvalue()
+
+
 def build_all():
+    # Every asset is a pure function of code + the source font/logo, so the whole
+    # set reproduces byte-for-byte and --check verifies exact bytes.
     return {
         "date_ring.png": gen_date_ring(),
         "day_hand.png": gen_day_hand(),
         "date_oval.png": gen_date_oval(),
         "hour_dial.png": gen_hour_dial(),
-        "day_dial.png": patch_day_dial(Image.open(DRAW / "day_dial.png")),
-        "batt_dial.png": patch_batt_dial(Image.open(DRAW / "batt_dial.png")),
+        "day_dial.png": gen_day_dial(),
+        "batt_dial.png": gen_batt_dial(),
     }
 
 
@@ -247,23 +285,19 @@ def main():
 
     for name, img in assets.items():
         path = DRAW / name
+        gen = png_bytes(img)
         if args.check:
-            cur = Image.open(path).convert("RGBA")
-            if cur.size != img.size:
-                print(f"{name}: SIZE DRIFT {cur.size} != {img.size}")
-                drift += 1
-                continue
-            diff = ImageChops.difference(cur, img)
-            bbox = diff.getbbox()
-            if bbox is None:
+            if path.read_bytes() == gen:
                 print(f"{name}: exact match")
             else:
-                px = sum(1 for p in diff.getdata() if any(p))
-                mx = max(max(p) for p in diff.getdata())
-                print(f"{name}: DRIFT {px}px differ, max channel delta {mx}")
+                # bytes differ — say whether it's pixel drift or only re-encoding
+                cur = Image.open(path).convert("RGBA")
+                bbox = ImageChops.difference(cur, img).getbbox() if cur.size == img.size else True
+                kind = "PIXEL DRIFT" if bbox else "byte drift (re-encode only)"
+                print(f"{name}: {kind}")
                 drift += 1
         else:
-            img.save(path)
+            path.write_bytes(gen)
             print(f"wrote {path.relative_to(ROOT)}")
 
     if args.check:
