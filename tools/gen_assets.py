@@ -5,11 +5,12 @@ Run from anywhere:  py tools/gen_assets.py [--check]
   (default)  writes assets into watchface/src/main/res/drawable/ and res/font/
   --check    regenerates in memory and reports any pixel/byte drift vs the repo
 
-Fully generated here: hour_dial (disc + numerals + burgee), date_ring,
-day_hand, date_oval, res/font/shantell.ttf. Patched in place here: day_dial
-(letter layer), batt_dial (bolt brightness). Everything else in drawable/
-(day/batt gauge bases, tick_ring, hands, preview) is baked art from the
-prototyping phase — its history lives in git.
+Fully generated here (byte-reproducible; --check verifies exact bytes):
+hour_dial (disc + numerals + burgee), date_ring, day_hand, date_oval,
+res/font/shantell.ttf. Everything else in drawable/ is committed baked art —
+day_dial and batt_dial were patched once from baked bases (see patch_day_dial /
+patch_batt_dial), tick_ring/hands/gauge bases/preview are from prototyping.
+Their history lives in git.
 
 Typography note: all text renders from tools/fonts/ShantellSans.ttf at the
 font's default variable instance. That default rendering is the approved look;
@@ -215,24 +216,44 @@ def gen_font_subset():
     import os
     os.environ.setdefault("SOURCE_DATE_EPOCH", "0")  # deterministic head.modified
     from fontTools import subset
+    from fontTools.varLib.instancer import instantiateVariableFont
     opts = subset.Options()
     sub = subset.Subsetter(opts)
     font = subset.load_font(str(SHANTELL), opts)
     sub.populate(text="0123456789SMTWF")
     sub.subset(font)
+    # We only ever render the default instance, so pin the variation axes and drop
+    # the variable-font machinery (fvar/gvar/…): ~34 KB smaller, no visual change.
+    if "fvar" in font:
+        instantiateVariableFont(
+            font, {a.axisTag: a.defaultValue for a in font["fvar"].axes}, inplace=True
+        )
     buf = io.BytesIO()
     font.save(buf)
     return buf.getvalue()
 
 
+def png_bytes(img):
+    """Canonical PNG encoding, used for both writing and byte-exact --check.
+    PIL's default PNG save is deterministic run-to-run, so re-running the
+    generator reproduces committed bytes exactly."""
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    return buf.getvalue()
+
+
 def build_all():
+    # Only fully-generated assets are regenerated (pure functions of code + the
+    # source font/logo), so they reproduce byte-for-byte. day_dial and batt_dial
+    # were patched once from baked bases (Shantell letters, white bolt) and are
+    # now committed art — patching their own output isn't byte-stable, so they're
+    # deliberately out of the regenerated set. See patch_day_dial / patch_batt_dial
+    # for how they were derived.
     return {
         "date_ring.png": gen_date_ring(),
         "day_hand.png": gen_day_hand(),
         "date_oval.png": gen_date_oval(),
         "hour_dial.png": gen_hour_dial(),
-        "day_dial.png": patch_day_dial(Image.open(DRAW / "day_dial.png")),
-        "batt_dial.png": patch_batt_dial(Image.open(DRAW / "batt_dial.png")),
     }
 
 
@@ -247,23 +268,19 @@ def main():
 
     for name, img in assets.items():
         path = DRAW / name
+        gen = png_bytes(img)
         if args.check:
-            cur = Image.open(path).convert("RGBA")
-            if cur.size != img.size:
-                print(f"{name}: SIZE DRIFT {cur.size} != {img.size}")
-                drift += 1
-                continue
-            diff = ImageChops.difference(cur, img)
-            bbox = diff.getbbox()
-            if bbox is None:
+            if path.read_bytes() == gen:
                 print(f"{name}: exact match")
             else:
-                px = sum(1 for p in diff.getdata() if any(p))
-                mx = max(max(p) for p in diff.getdata())
-                print(f"{name}: DRIFT {px}px differ, max channel delta {mx}")
+                # bytes differ — say whether it's pixel drift or only re-encoding
+                cur = Image.open(path).convert("RGBA")
+                bbox = ImageChops.difference(cur, img).getbbox() if cur.size == img.size else True
+                kind = "PIXEL DRIFT" if bbox else "byte drift (re-encode only)"
+                print(f"{name}: {kind}")
                 drift += 1
         else:
-            img.save(path)
+            path.write_bytes(gen)
             print(f"wrote {path.relative_to(ROOT)}")
 
     if args.check:
